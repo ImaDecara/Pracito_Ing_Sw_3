@@ -1,0 +1,66 @@
+name: compose-app
+
+services:
+  api-qa:
+    image: imadecara/compose-app:v1.0
+    env_file:
+      - env.qa
+    environment:
+      - NODE_ENV=qa
+      - PORT=3000
+    ports:
+      - "3001:3000"
+    depends_on:
+      db-qa:
+        condition: service_healthy
+    restart: unless-stopped
+
+  db-qa:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_DB=appdbqa
+      - POSTGRES_USER=appuserqa
+      - POSTGRES_PASSWORD=secretqa
+    volumes:
+      - pgdata_qa:/var/lib/postgresql/data
+      - ./db:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U appuserqa -d appdbqa"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  api-prod:
+    image: imadecara/compose-app:v1.0
+    env_file:
+      - env.prod
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+    ports:
+      - "3002:3000"
+    depends_on:
+      db-prod:
+        condition: service_healthy
+    restart: unless-stopped
+
+  db-prod:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_DB=appdbprod
+      - POSTGRES_USER=appuserprod
+      - POSTGRES_PASSWORD=secretprod
+    volumes:
+      - pgdata_prod:/var/lib/postgresql/data
+      - ./db:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U appuserprod -d appdbprod"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+volumes:
+  pgdata_qa:
+  pgdata_prod:
